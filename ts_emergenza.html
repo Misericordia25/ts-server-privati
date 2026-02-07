@@ -216,7 +216,10 @@ section.modulo{
 /* ==========================
    AUTO-COMPILAZIONE
 ========================== */
-document.getElementById("data_servizio").valueAsDate = new Date();
+
+if (!draftRaw) {
+  document.getElementById('data_servizio').value = new Date().toISOString().slice(0,10);
+}
 
 // --- TARGA AUTO ---
 const targaInput = document.getElementById("targa");
@@ -1862,6 +1865,47 @@ document.addEventListener('DOMContentLoaded', () => {
   let LAST_PDF_BLOB   = null;
   let LAST_EXCEL_BLOB = null;
 
+  /* ================= RIPRISTINO DRAFT ===================== */
+  const draftRaw = localStorage.getItem(DRAFT_KEY);
+
+  if (draftRaw) {
+    try {
+      const draft = JSON.parse(draftRaw);
+      console.log("🔁 RIPRISTINO TS DRAFT", draft);
+
+      // Ripopola input / select / textarea
+      document.querySelectorAll('input,select,textarea').forEach(el=>{
+        const k = el.name || el.id;
+        if (!k || draft[k] === undefined) return;
+
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          el.checked = !!draft[k];
+        } else {
+          el.value = draft[k];
+        }
+      });
+
+      // Ripristina canvas firme
+      document.querySelectorAll('canvas').forEach(c=>{
+        const key = 'canvas_' + (c.id || c.dataset.id);
+        if (draft[key]) {
+          const img = new Image();
+          img.onload = () => {
+            c.width  = img.width;
+            c.height = img.height;
+            c.getContext('2d').drawImage(img,0,0);
+          };
+          img.src = draft[key];
+        }
+      });
+
+    } catch (e) {
+      console.error("❌ Errore ripristino draft TS", e);
+    }
+  }
+
+
+
   /* ================= PROGRESSIVO ===================== */
   function confermaProgressivoDefinitivo(){
     const year = new Date().getFullYear();
@@ -1890,7 +1934,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ================= NOME FILE ===================== */
 
 function getFileNameBase(){
-  const d = document.getElementById('data_servizio')?.value || 'data';
+  const d = if (!draftRaw) {
+  document.getElementById('data_servizio').value = new Date().toISOString().slice(0,10);
+}
+
 
   const num    = sessionStorage.getItem("TS_PROGRESSIVO_TEMP") || '0';
   const tablet = sessionStorage.getItem("TS_TABLET_CODE") || 'X';
