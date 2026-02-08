@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -212,14 +212,21 @@ section.modulo{
 
 <script src="js/load-config.js"></script>
 
+
 <script>
 /* ==========================
    AUTO-COMPILAZIONE
 ========================== */
 
-if (!draftRaw) {
-  document.getElementById('data_servizio').value = new Date().toISOString().slice(0,10);
+const dataInput = document.getElementById('data_servizio');
+
+// Imposta la data SOLO se NON esiste un TS sospeso
+if (!localStorage.getItem('TsEmergenza_DRAFT')) {
+  dataInput.value = new Date().toISOString().slice(0,10);
 }
+
+
+
 
 // --- TARGA AUTO ---
 const targaInput = document.getElementById("targa");
@@ -1824,7 +1831,6 @@ passive:false});
 
 
 
-
 <!-- =====================================================
      BLOCCO 5 – TS EMERGENZA (EXPORT + DRAFT) – VERSIONE DEFINITIVA
 ===================================================== -->
@@ -1934,9 +1940,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ================= NOME FILE ===================== */
 
 function getFileNameBase(){
-  const d = if (!draftRaw) {
-  document.getElementById('data_servizio').value = new Date().toISOString().slice(0,10);
-}
+  const d =
+    document.getElementById('data_servizio')?.value ||
+    new Date().toISOString().slice(0,10);
+
 
 
   const num    = sessionStorage.getItem("TS_PROGRESSIVO_TEMP") || '0';
@@ -2158,6 +2165,3 @@ window.location.href = '../index.html';
 
    
 </script>
-
-
-    
