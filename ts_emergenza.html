@@ -1831,6 +1831,10 @@ passive:false});
 
 
 
+
+
+
+
 <!-- =====================================================
      BLOCCO 5 – TS EMERGENZA (EXPORT + DRAFT) – VERSIONE DEFINITIVA
 ===================================================== -->
@@ -1892,18 +1896,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // Ripristina canvas firme
-      document.querySelectorAll('canvas').forEach(c=>{
-        const key = 'canvas_' + (c.id || c.dataset.id);
-        if (draft[key]) {
-          const img = new Image();
-          img.onload = () => {
-            c.width  = img.width;
-            c.height = img.height;
-            c.getContext('2d').drawImage(img,0,0);
-          };
-          img.src = draft[key];
-        }
-      });
+     document.querySelectorAll('canvas').forEach(c=>{
+  const key = 'canvas_' + (c.id || c.dataset.id);
+  if (!draft[key]) return;
+
+  const img = new Image();
+  img.onload = () => {
+    // aspetta il layout finale
+    requestAnimationFrame(() => {
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+    });
+  };
+  img.src = draft[key];
+});
 
     } catch (e) {
       console.error("❌ Errore ripristino draft TS", e);
@@ -2032,6 +2039,44 @@ async function inviaAlServer(pdfBlob, excelBlob, payload){
 
 
 
+function applicaPuliziaPDF(root){
+
+  // 1️⃣ Rimuove righe assistiti completamente vuote
+  root.querySelectorAll('.riga-paziente').forEach(riga=>{
+    const hasValue = [...riga.querySelectorAll('input,select,textarea,canvas')]
+      .some(el=>{
+        if(el.tagName === 'CANVAS') return el.toDataURL().length > 2000;
+        if(el.type === 'checkbox' || el.type === 'radio') return el.checked;
+        return el.value && el.value.trim() !== '';
+      });
+
+    if(!hasValue) riga.remove();
+  });
+
+  // 2️⃣ Rimuove blocchi rifiuto ricovero non spuntati
+  root.querySelectorAll('.rifiuto-firma-wrap').forEach(blocco=>{
+    const check = blocco.querySelector('input[type="checkbox"]');
+    if(check && !check.checked) blocco.remove();
+  });
+
+  // 3️⃣ Rimuove sanificazione se totalmente vuota
+  const san = root.querySelector('.riga-sanificazione');
+  if(san){
+    const hasSan = [...san.querySelectorAll('input,canvas')]
+      .some(el=>{
+        if(el.tagName === 'CANVAS') return el.toDataURL().length > 2000;
+        if(el.type === 'checkbox') return el.checked;
+        return el.value && el.value.trim() !== '';
+      });
+    if(!hasSan) san.remove();
+  }
+}
+
+
+
+
+
+
 
 
 function cloneModuliPuliti(){
@@ -2039,7 +2084,12 @@ function cloneModuliPuliti(){
   container.style.cssText = 'position:absolute;left:0;top:-4000px;width:210mm;background:#fff';
 
   document.querySelectorAll('section.modulo').forEach(modulo=>{
-    const clone = modulo.cloneNode(true);
+
+const clone = modulo.cloneNode(true);
+
+applicaPuliziaPDF(clone);
+
+   
 
     // Rimuove elementi non stampabili
     clone.querySelectorAll(
