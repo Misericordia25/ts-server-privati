@@ -164,7 +164,7 @@ exports.handler = async (event) => {
         secure: false,
         auth: {
           user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PWD
+          pass: process.env.MAIL_PASSWORD
         }
       });
 
